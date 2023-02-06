@@ -3,15 +3,29 @@
 #include <ArduinoJson.h>
 #include <Bounce2.h>
 
+// code ---> td7vz
+
+// endpoint --> https://exceed-hardware-stamp465.koyeb.app/all_traffic
+
+
 const String baseUrl = "https://exceed-hardware-stamp465.koyeb.app";
 
-const String point = "กลุ่มที่";
-const int nearby_1 = "กลุ่มใกล้เคียง (กลุ่มที่ +-1)";
-const int nearby_2 = "กลุ่มใกล้เคียง (กลุ่มที่ +-1)";
+const String point = "8";
+const int nearby_1 = 7;
+const int nearby_2 = 9;
+
+const int state = 0;
+// 0 --> green
+// 1 --> yellow
+// 2 ---> red
+
+const String nearby_1s = "7";
+const String nearby_2s = "9";
 
 void GET_traffic()
 {
   DynamicJsonDocument doc(65536);
+  
   HTTPClient http;
   const String url = baseUrl + "/all_traffic";
   http.begin(url);
@@ -22,25 +36,13 @@ void GET_traffic()
   {
     String payload = http.getString();
     deserializeJson(doc, payload);
+    JsonArray all = doc["all_traffic"].as<JsonArray>();
+    Serial.println(all);
 
-    // *** write your code here ***
-    // set up JSON
-    // .
-    // .
-    // .
-    // .
-    // .
-    // .
-    // .
-    // .
-    // .
-    // .
-    // .
-    // .
-    // .
-    // .
-    // .
-  }
+    
+
+
+  
   else
   {
     Serial.print("Error ");
@@ -59,12 +61,11 @@ void POST_traffic(String led)
   http.addHeader("Content-Type", "application/json");
 
   DynamicJsonDocument doc(2048);
-  // *** write your code here ***
-  // set up JSON
-  // .
-  // .
-  // .
-  serializeJson(doc, json);
+
+  doc["code"] = "td7vz";
+  doc["traffic"] = led;
+  
+  serializeJson(doc, json); // convert Dynamic ---> string json
 
   Serial.println("POST " + led);
   int httpResponseCode = http.POST(json);
