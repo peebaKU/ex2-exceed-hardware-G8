@@ -14,7 +14,6 @@ const String point = "8";
 const int nearby_1 = 7;
 const int nearby_2 = 9;
 
-const int state = 0;
 // 0 --> green
 // 1 --> yellow
 // 2 ---> red
@@ -37,12 +36,13 @@ void GET_traffic()
     String payload = http.getString();
     deserializeJson(doc, payload);
     JsonArray all = doc["all_traffic"].as<JsonArray>();
-    Serial.println(all);
-
-    
-
-
-  
+    for (JsonObject a: all){
+      if (a["point"].as<String>() == "7" || a["point"].as<String>() == "8" || a["point"].as<String>() == "9"){
+        Serial.println("Point ---> " + a["point"].as<String>());
+        Serial.println("Traffic ---> " + a["traffic"].as<String>());
+      }
+    }
+  }
   else
   {
     Serial.print("Error ");
