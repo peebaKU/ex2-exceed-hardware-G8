@@ -59,7 +59,6 @@ void POST_traffic(String led)
   HTTPClient http;
   http.begin(url);
   http.addHeader("Content-Type", "application/json");
-
   DynamicJsonDocument doc(2048);
 
   doc["code"] = "td7vz";
@@ -71,7 +70,7 @@ void POST_traffic(String led)
   int httpResponseCode = http.POST(json);
   if (httpResponseCode == 200)
   {
-    Serial.print("Done");
+    Serial.print("DONE");
     Serial.println();
   }
   else
