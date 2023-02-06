@@ -5,7 +5,7 @@
 
 const String baseUrl = "https://exceed-hardware-stamp465.koyeb.app";
 
-const String point = "กลุ่มที่";
+const String point = "8";
 const int nearby_1 = "กลุ่มใกล้เคียง (กลุ่มที่ +-1)";
 const int nearby_2 = "กลุ่มใกล้เคียง (กลุ่มที่ +-1)";
 
