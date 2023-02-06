@@ -4,7 +4,7 @@
 #include <HTTPClient.h>
 #include <ArduinoJson.h>
 #include <Bounce2.h>
-//#include "traffic.h"
+#include "traffic.h"
 
 #define red 26
 #define yellow 25
@@ -20,6 +20,7 @@ int count = 0;
 Bounce debouncer = Bounce();
 
 int count_red = 0;
+int count_green = 0;
 void Connect_Wifi();
 
 void setup()
@@ -32,11 +33,8 @@ void setup()
   debouncer.attach(button, INPUT_PULLUP);
   debouncer.interval(25);
   Connect_Wifi();
-
   delay(200);
-  // start LED with GREEN and POST to database
   digitalWrite(green, HIGH);
-  //POST_traffic("green");
 }
 
 void loop()
@@ -51,11 +49,17 @@ void loop()
   if (state == 1)//green
   {
     digitalWrite(green, HIGH);
+    if(count_green==0)
+    {  POST_traffic("green");
+       GET_traffic();
+       count_green=1;
+    }
     delay(50);
   }
   else if (state == 2)//yelllow
   { digitalWrite(green, LOW);
     digitalWrite(yellow, HIGH);
+    POST_traffic("yellow");
     delay(8000);
     digitalWrite(yellow, LOW);
     delay(10);
@@ -63,13 +67,15 @@ void loop()
   }
   else if (state == 3)//red
   { digitalWrite(red, HIGH);
-    if(count_red==0){delay(5000);}
+    if(count_red==0){POST_traffic("red");GET_traffic();delay(5000);}
     if(x<=light){
       state=1;
       digitalWrite(red, LOW);
       delay(10);
-      count_red++;
+      
     }
+    count_red++;
+    count_green=0;
     
   }
 }
