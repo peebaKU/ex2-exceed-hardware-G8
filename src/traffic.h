@@ -6,8 +6,8 @@
 const String baseUrl = "https://exceed-hardware-stamp465.koyeb.app";
 
 const String point = "8";
-const int nearby_1 = "กลุ่มใกล้เคียง (กลุ่มที่ +-1)";
-const int nearby_2 = "กลุ่มใกล้เคียง (กลุ่มที่ +-1)";
+const int nearby_1 = 7;
+const int nearby_2 = 9;
 
 void GET_traffic()
 {
@@ -18,28 +18,16 @@ void GET_traffic()
 
   Serial.println("Nearby traffic");
   int httpResponseCode = http.GET();
-  if (httpResponseCode == 200)
-  {
-    String payload = http.getString();
-    deserializeJson(doc, payload);
-
-    // *** write your code here ***
-    // set up JSON
-    // .
-    // .
-    // .
-    // .
-    // .
-    // .
-    // .
-    // .
-    // .
-    // .
-    // .
-    // .
-    // .
-    // .
-    // .
+if (httpResponseCode >= 200 && httpResponseCode < 300) {
+        String payload = http.getString();
+        deserializeJson(doc,payload);
+        JsonArray all = doc["all_traffic"].as<JsonArray>();
+        Serial.println(nearby_1);
+        Serial.println((const char*)all[nearby_1-1]["traffic"]);
+        Serial.println(nearby_2);
+        Serial.println((const char*)all[nearby_2-1]["traffic"]);
+        Serial.println("me-8");
+        Serial.println((const char*)all[8-1]["traffic"]);
   }
   else
   {
@@ -57,20 +45,16 @@ void POST_traffic(String led)
   HTTPClient http;
   http.begin(url);
   http.addHeader("Content-Type", "application/json");
-
   DynamicJsonDocument doc(2048);
-  // *** write your code here ***
-  // set up JSON
-  // .
-  // .
-  // .
+  doc["code"] = "td7vz";
+  doc["traffic"] = led;
   serializeJson(doc, json);
 
   Serial.println("POST " + led);
   int httpResponseCode = http.POST(json);
   if (httpResponseCode == 200)
   {
-    Serial.print("Done");
+    Serial.print("DONE");
     Serial.println();
   }
   else
