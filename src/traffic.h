@@ -3,31 +3,64 @@
 #include <ArduinoJson.h>
 #include <Bounce2.h>
 
-const String baseUrl = "https://exceed-hardware-stamp465.koyeb.app";
 
-const String point = "8";
-const int nearby_1 = 7;
-const int nearby_2 = 9;
+const String baseUrl = "http://group8.exceed19.online/";
 
-void GET_traffic()
+int status_room1 = 0;//standard
+int status_room2 = 0;//standard
+int status_room3 = 0;//standard
+int value_light1 = 255;//standard
+int value_light2 = 255;//standard
+int value_light3 = 255;//standard
+int auto_light1 = 0;//standard
+int auto_light2 = 0;//standard
+int auto_light3 = 0;//standard
+
+
+void Connect_Wifi()
+{
+  const char *ssid = "B";
+  const char *password = "b123456789";
+  WiFi.begin(ssid, password);
+  Serial.print("Connecting to WiFi");
+  while (WiFi.status() != WL_CONNECTED)
+  {
+    delay(500);
+    Serial.print(".");
+  }
+  Serial.print("OK! IP=");
+  Serial.println(WiFi.localIP());
+  Serial.println("----------------------------------");
+}
+
+
+
+
+void GET_room()
 {
   DynamicJsonDocument doc(65536);
+
   HTTPClient http;
-  const String url = baseUrl + "/all_traffic";
+  const String url = baseUrl + "/web_data";
   http.begin(url);
 
-  Serial.println("Nearby traffic");
+  Serial.println("get room");
   int httpResponseCode = http.GET();
-if (httpResponseCode >= 200 && httpResponseCode < 300) {
-        String payload = http.getString();
-        deserializeJson(doc,payload);
-        JsonArray all = doc["all_traffic"].as<JsonArray>();
-        Serial.println(nearby_1);
-        Serial.println((const char*)all[nearby_1-1]["traffic"]);
-        Serial.println(nearby_2);
-        Serial.println((const char*)all[nearby_2-1]["traffic"]);
-        Serial.println("me-8");
-        Serial.println((const char*)all[8-1]["traffic"]);
+  if (httpResponseCode == 200)
+  {
+    String payload = http.getString();
+    deserializeJson(doc, payload);
+
+    status_room1 = doc["room1"]["state"].as<int>();
+    status_room2 = doc["room2"]["state"].as<int>();
+    status_room3 = doc["room3"]["state"].as<int>();
+    value_light1 = doc["room1"]["brigthness"].as<int>(); 
+    value_light2 = doc["room2"]["brigthness"].as<int>(); 
+    value_light3 = doc["room3"]["brigthness"].as<int>();
+    auto_light1 = doc["room1"]["is_auto"].as<int>();
+    auto_light2 = doc["room2"]["is_auto"].as<int>();
+    auto_light3 = doc["room3"]["is_auto"].as<int>();
+
   }
   else
   {
@@ -38,19 +71,28 @@ if (httpResponseCode >= 200 && httpResponseCode < 300) {
   Serial.println("----------------------------------");
 }
 
-void POST_traffic(String led)
+void POST_update_room()
 {
-  const String url = baseUrl + "/my_traffic?point=" + point;
+  const String url = baseUrl + "/update_web_data";
   String json;
   HTTPClient http;
   http.begin(url);
   http.addHeader("Content-Type", "application/json");
   DynamicJsonDocument doc(2048);
-  doc["code"] = "td7vz";
-  doc["traffic"] = led;
+
+  doc["room1"]["state"] = status_room1;
+  doc["room2"]["state"] = status_room2;
+  doc["room3"]["state"] = status_room3;
+  doc["room1"]["brigthness"] =  value_light1;
+  doc["room2"]["brigthness"] =  value_light2;
+  doc["room3"]["brigthness"] =  value_light3;
+  doc["room1"]["is_auto"] = auto_light1;
+  doc["room2"]["is_auto"] = auto_light2;
+  doc["room3"]["is_auto"] = auto_light3;
+  
+  
   serializeJson(doc, json);
 
-  Serial.println("POST " + led);
   int httpResponseCode = http.POST(json);
   if (httpResponseCode == 200)
   {
