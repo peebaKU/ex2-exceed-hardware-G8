@@ -1,97 +1,231 @@
-// If you want to run in WOKWi
-// change pin and wifi
 #include <Arduino.h>
-#include <HTTPClient.h>
-#include <ArduinoJson.h>
 #include <Bounce2.h>
-#include "traffic.h"
-
-#define red 26
-#define yellow 25
-#define green 33
-#define ldr 34
-#define button 27
-
-#define light 50
-
-int state = 1;
-int count = 0;
-
+// #include "baramee.h"
+#define GREEN 33
+#define RED 26
+#define YELLOW 25
+#define LDR 34
+TaskHandle_t TaskA = NULL;
+TaskHandle_t TaskB = NULL;
+int status_room1 = 0;//standard
+int status_room2 = 0;//standard
+int status_room3 = 0;//standard
+int value_light1 = 255;//standard
+int value_light2 = 255;//standard
+int value_light3 = 255;//standard
+int auto_light1 = 0;//standard
+int auto_light2 = 0;//standard
+int auto_light3 = 0;//standard
+int sensor_LDR;
+#define BUTTON 27
 Bounce debouncer = Bounce();
+int SW_status = 0;
+int i = 255;
+int touch;
+int count = 0;
+int threshold = 40;
+bool touch1detected = false;
+bool touch2detected = false;
+int cnt = 0;
+void gotTouch()
+{
+  touch1detected = true;
+}
 
-int count_red = 0;
-int count_green = 0;
-void Connect_Wifi();
+void gotTouch1()
+{
+  touch2detected = true;
+}
+
+int poyT1 = 0, countT1 = 0;
+int poyT2 = 0, countT2 = 0;
+
+void Touch1()
+{
+  debouncer.update();
+  if (debouncer.fell())
+  {
+    status_room1 = !status_room1;
+  }
+}
+
+void Touch2()
+{
+  if (touchRead(T2) <= 20 && poyT1 != 1)
+  {
+    if (countT1 == 0)
+    {
+      Serial.println(touchRead(T2));
+      status_room2 = 255;
+      countT1++;
+      poyT1 = !poyT1;
+    }
+  }
+  if (touchRead(T2) > 20)
+  {
+    countT1 = 0;
+  }
+  if (touchRead(T2) <= 20 && poyT1 == 1)
+  {
+    if (countT1 == 0)
+    {
+      Serial.println(touchRead(T2));
+      status_room2 = 0;
+      countT1++;
+      poyT1 = !poyT1;
+    }
+  }
+}
+
+void Touch3()
+{
+  if (touchRead(T3) <= 20 && poyT2 != 1)
+  {
+    if (countT2 == 0)
+    {
+      status_room3 = 255;
+      countT2++;
+      poyT2 = !poyT2;
+    }
+  }
+  if (touchRead(T3) > 20)
+  {
+    countT2 = 0;
+  }
+  if (touchRead(T3) <= 20 && poyT2 == 1)
+  {
+    if (countT2 == 0)
+    {
+      status_room3 = 0;
+      countT2++;
+      poyT2 = !poyT2;
+    }
+  }
+}
+
+void Senlight(void *param)
+{
+  while (1)
+  {
+    if (!auto_light1)
+    {
+      Touch1();
+      vTaskDelay(1 / portTICK_PERIOD_MS);
+    }
+    if (!auto_light2)
+    {
+      Touch2();
+      vTaskDelay(1 / portTICK_PERIOD_MS);
+    }
+    if (!auto_light3)
+    {
+      Touch3();
+      vTaskDelay(1 / portTICK_PERIOD_MS);
+    }
+    sensor_LDR = map(analogRead(LDR), 1250, 4096, 0, 255);
+    vTaskDelay(1 / portTICK_PERIOD_MS);
+  }
+}
+
+void GET_POST(void *param)
+{
+  while (1)
+  {
+  }
+}
 
 void setup()
 {
   Serial.begin(115200);
-  pinMode(red, OUTPUT);
-  pinMode(yellow, OUTPUT);
-  pinMode(green, OUTPUT);
-  pinMode(ldr, INPUT);
-  debouncer.attach(button, INPUT_PULLUP);
-  debouncer.interval(25);
-  Connect_Wifi();
-  delay(200);
-  digitalWrite(green, HIGH);
+  ledcSetup(0, 5000, 8);
+  ledcSetup(1, 5000, 8);
+  ledcSetup(2, 5000, 8);
+  ledcAttachPin(GREEN, 0);
+  ledcAttachPin(YELLOW, 1);
+  ledcAttachPin(RED, 2);
+  touchAttachInterrupt(T2, gotTouch, threshold);
+  touchAttachInterrupt(T3, gotTouch1, threshold);
+  debouncer.attach(BUTTON, INPUT_PULLUP);
+  debouncer.interval(27);
+  sensor_LDR = map(analogRead(LDR), 0, 4095, 0, 255);
+  Serial.println(analogRead(LDR));
+  xTaskCreatePinnedToCore(Senlight, "Senlight", 1000, NULL, 1, &TaskA, 0);
+  xTaskCreatePinnedToCore(GET_POST, "GET_POST", 1000, NULL, 1, &TaskB, 1);
 }
 
 void loop()
 {
-  // *** write your code here ***
-  debouncer.update();
-  if (debouncer.fell() && state ==1){
-      state=2;
-  }
-  // Your can change everything that you want
-  int x = map(analogRead(ldr), 1000, 4095, 0, 255);
-  if (state == 1)//green
+  if (!auto_light1)
   {
-    digitalWrite(green, HIGH);
-    if(count_green==0)
-    {  POST_traffic("green");
-       GET_traffic();
-       count_green=1;
+    if (status_room1)
+    {
+      ledcWrite(0, value_light1); // on room1
     }
-    delay(50);
-  }
-  else if (state == 2)//yelllow
-  { digitalWrite(green, LOW);
-    digitalWrite(yellow, HIGH);
-    POST_traffic("yellow");
-    delay(8000);
-    digitalWrite(yellow, LOW);
-    delay(10);
-    state=3;
-  }
-  else if (state == 3)//red
-  { digitalWrite(red, HIGH);
-    if(count_red==0){POST_traffic("red");GET_traffic();delay(5000);}
-    if(x<=light){
-      state=1;
-      digitalWrite(red, LOW);
-      delay(10);
-      
+    else
+    {
+      ledcWrite(0, 0); // off room1
     }
-    count_red++;
-    count_green=0;
-    
+    delay(5);
   }
-}
+  else if (auto_light1) // mode auto room1
+  {
+    if (sensor_LDR <= 50)
+    {
+      ledcWrite(0, value_light1); // on room1
+    }
+    else
+    {
+      ledcWrite(0, 0); // off room1
+    }
+    delay(5);
+  }
 
-void Connect_Wifi()
-{
-  const char *ssid = "M";
-  const char *password = "leesoome123";
-  WiFi.begin(ssid, password);
-  Serial.print("Connecting to WiFi");
-  while (WiFi.status() != WL_CONNECTED)
+  if (!auto_light2)
   {
-    delay(500);
-    Serial.print(".");
+    if (status_room2)
+    {
+      ledcWrite(1, value_light2); // on room2
+    }
+    else
+    {
+      ledcWrite(1, 0); // off room2
+    }
+    delay(5);
   }
-  Serial.print("OK! IP=");
-  Serial.println(WiFi.localIP());
-  Serial.println("----------------------------------");
+  else if (auto_light2) // mode auto room2
+  {
+    if (sensor_LDR <= 50)
+    {
+      ledcWrite(1, value_light2); // on room2
+    }
+    else
+    {
+      ledcWrite(1, 0); // off room2
+    }
+    delay(5);
+  }
+  if (!auto_light3)
+  {
+    if (status_room3)
+    {
+      ledcWrite(2, value_light3); // on room3
+    }
+    else
+    {
+      ledcWrite(2, 0); // off room3
+    }
+    delay(5);
+  }
+  else if (auto_light3) // mode auto room3
+  {
+    if (sensor_LDR <= 50)
+    {
+      ledcWrite(2, value_light3); // on room3
+    }
+    else
+    {
+      ledcWrite(2, 0); // off room3
+    }
+    delay(5);
+  }
 }
